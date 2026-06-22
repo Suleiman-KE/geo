@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'unsafe-inline'">
-  <title>Interactive 3D Globe - Airports</title>
+  <title>Interactive 3D Globe - World Airports</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     html,body { height:100%; margin:0; background:#000; font-family: system-ui; }
@@ -42,7 +42,7 @@
       padding: 15px;
       border-radius: 8px;
       max-width: 300px;
-      max-height: 300px;
+      max-height: 400px;
       overflow-y: auto;
       border: 2px solid #4CAF50;
       display: none;
@@ -61,7 +61,7 @@
     #airportPanel li {
       padding: 5px 0;
       border-bottom: 1px solid #333;
-      font-size: 12px;
+      font-size: 11px;
     }
     #airportPanel li:last-child {
       border-bottom: none;
@@ -75,6 +75,7 @@
   <div id="airportPanel"></div>
 
   <script async src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script>
+  <script async src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson.min.js"></script>
   <script src="globe.js"></script>
 </body>
 </html>
