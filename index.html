@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'unsafe-inline'">
   <title>Interactive Spinning 3D Globe (Three.js)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
@@ -133,8 +134,8 @@
       const pointer = new THREE.Vector2();
 
       function showTooltip(x, y, html) {
-        tooltip.style.left = `${x}px`;
-        tooltip.style.top = `${y}px`;
+        tooltip.style.left = x + 'px';
+        tooltip.style.top = y + 'px';
         tooltip.innerHTML = html;
         tooltip.style.display = 'block';
       }
@@ -142,7 +143,7 @@
         tooltip.style.display = 'none';
       }
 
-      renderer.domElement.addEventListener('pointermove', (e) => {
+      renderer.domElement.addEventListener('pointermove', function(e) {
         const rect = renderer.domElement.getBoundingClientRect();
         pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -159,7 +160,7 @@
         }
       });
 
-      renderer.domElement.addEventListener('click', (e) => {
+      renderer.domElement.addEventListener('click', function(e) {
         raycaster.setFromCamera(pointer, camera);
         const intersects = raycaster.intersectObjects(markers.children, true);
         if (intersects.length > 0) {
@@ -173,12 +174,12 @@
       let previousMousePosition = { x: 0, y: 0 };
       let rotation = { x: 0, y: 0 };
 
-      renderer.domElement.addEventListener('mousedown', (e) => {
+      renderer.domElement.addEventListener('mousedown', function(e) {
         isDragging = true;
         previousMousePosition = { x: e.clientX, y: e.clientY };
       });
 
-      renderer.domElement.addEventListener('mousemove', (e) => {
+      renderer.domElement.addEventListener('mousemove', function(e) {
         if (isDragging) {
           const deltaX = e.clientX - previousMousePosition.x;
           const deltaY = e.clientY - previousMousePosition.y;
@@ -193,16 +194,16 @@
         }
       });
 
-      renderer.domElement.addEventListener('mouseup', () => {
+      renderer.domElement.addEventListener('mouseup', function() {
         isDragging = false;
       });
 
-      renderer.domElement.addEventListener('mouseleave', () => {
+      renderer.domElement.addEventListener('mouseleave', function() {
         isDragging = false;
       });
 
       // Zoom with scroll
-      renderer.domElement.addEventListener('wheel', (e) => {
+      renderer.domElement.addEventListener('wheel', function(e) {
         e.preventDefault();
         const zoomSpeed = 0.1;
         if (e.deltaY > 0) {
@@ -211,10 +212,10 @@
           camera.position.z -= zoomSpeed;
         }
         camera.position.z = Math.max(1.2, Math.min(5, camera.position.z));
-      }, { passive: false });
+      }, false);
 
       // Resize
-      window.addEventListener('resize', () => {
+      window.addEventListener('resize', function() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -224,11 +225,11 @@
       let autoSpin = true;
       const spinSpeed = 0.0005;
 
-      renderer.domElement.addEventListener('mousedown', () => {
+      renderer.domElement.addEventListener('mousedown', function() {
         autoSpin = false;
       });
 
-      renderer.domElement.addEventListener('mouseup', () => {
+      renderer.domElement.addEventListener('mouseup', function() {
         autoSpin = true;
       });
 
