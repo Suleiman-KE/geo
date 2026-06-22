@@ -51,44 +51,66 @@
     dir.position.set(5, 3, 5);
     scene.add(dir);
 
-    // Earth
+    // Earth with solid blue color (no texture to avoid CORS issues)
     const R = 1;
     const sphereGeo = new THREE.SphereGeometry(R, 64, 64);
-    const loader = new THREE.TextureLoader();
-
-    // Replace these URLs if you prefer other textures
-    const earthMapURL = 'https://upload.wikimedia.org/wikipedia/commons/8/80/Equirectangular_projection_SW.jpg';
-    // optional cloud texture (semi-transparent)
-    const cloudMapURL = 'https://raw.githubusercontent.com/turban/webgl-earth/master/images/fair_clouds_4k.png';
-
+    
     const earthMat = new THREE.MeshStandardMaterial({
-      map: loader.load(earthMapURL),
-      roughness: 1,
-      metalness: 0
+      color: 0x2e5090, // Ocean blue
+      roughness: 0.8,
+      metalness: 0.1
     });
     const earth = new THREE.Mesh(sphereGeo, earthMat);
     scene.add(earth);
 
-    // Optional clouds layer (slightly bigger sphere, transparent)
-    const cloudGeo = new THREE.SphereGeometry(R + 0.01, 64, 64);
-    const cloudMat = new THREE.MeshStandardMaterial({
-      map: loader.load(cloudMapURL),
-      transparent: true,
-      opacity: 0.8,
-      depthWrite: false,
+    // Add some continents as simple shapes
+    const continentMat = new THREE.MeshStandardMaterial({
+      color: 0x2d5016, // Forest green
+      roughness: 0.9,
+      metalness: 0
     });
-    const clouds = new THREE.Mesh(cloudGeo, cloudMat);
-    scene.add(clouds);
 
-    // Starfield background
+    // Simple continent markers (icosahedrons)
+    const continents = [
+      { lat: 45, lon: 0, size: 0.15 },    // Europe/Africa
+      { lat: 20, lon: -100, size: 0.12 }, // Americas
+      { lat: -20, lon: 130, size: 0.1 }   // Australia/Asia
+    ];
+
+    continents.forEach(cont => {
+      const pos = latLonToVector3(cont.lat, cont.lon, R + 0.001);
+      const geoContinent = new THREE.IcosahedronGeometry(cont.size, 2);
+      const meshContinent = new THREE.Mesh(geoContinent, continentMat);
+      meshContinent.position.copy(pos);
+      // Point towards center
+      meshContinent.lookAt(new THREE.Vector3(0, 0, 0));
+      earth.add(meshContinent);
+    });
+
+    // Starfield background with simple material
     const starsGeo = new THREE.SphereGeometry(90, 64, 64);
     const starsMat = new THREE.MeshBasicMaterial({
-      map: loader.load('https://raw.githubusercontent.com/ajay2507/space-webgl/master/images/galaxy_starfield.png'),
-      side: THREE.BackSide,
-      transparent: true
+      color: 0x001122,
+      side: THREE.BackSide
     });
     const starMesh = new THREE.Mesh(starsGeo, starsMat);
     scene.add(starMesh);
+
+    // Add some star particles
+    const starsParticles = new THREE.BufferGeometry();
+    const starCount = 1000;
+    const starPositions = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount * 3; i += 3) {
+      starPositions[i] = (Math.random() - 0.5) * 180;
+      starPositions[i + 1] = (Math.random() - 0.5) * 180;
+      starPositions[i + 2] = (Math.random() - 0.5) * 180;
+    }
+    starsParticles.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    const starPoints = new THREE.Points(
+      starsParticles,
+      new THREE.PointsMaterial({ color: 0xffffff, size: 0.5 })
+    );
+    scene.add(starPoints);
 
     // Controls
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -126,7 +148,7 @@
     function addMarker(lat, lon, label = '', color = 0xff4444, size = 0.02) {
       const pos = latLonToVector3(lat, lon, R + 0.01);
       const g = new THREE.SphereGeometry(size, 8, 8);
-      const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color }));
+      const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.5 }));
       m.position.copy(pos);
 
       // store metadata for tooltip
@@ -136,7 +158,7 @@
     }
 
     // Example markers
-    addMarker(37.7749, -122.4194, 'San Francisco');
+    addMarker(37.7749, -122.4194, 'San Francisco', 0xff4444);
     addMarker(51.5074, -0.1278, 'London', 0x00ffcc);
     addMarker(-33.8688, 151.2093, 'Sydney', 0xffcc00);
 
@@ -191,9 +213,8 @@
     function animate() {
       requestAnimationFrame(animate);
       if (!isInteracting) {
-        // rotate the earth and clouds slowly
+        // rotate the earth
         earth.rotation.y += spinSpeed;
-        clouds.rotation.y += spinSpeed * 1.1;
       }
       controls.update();
       renderer.render(scene, camera);
@@ -204,7 +225,6 @@
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
     if (mq.matches) {
       // stop auto spin
-      // you can also reduce rendering frequency here
     }
 
   </script>
