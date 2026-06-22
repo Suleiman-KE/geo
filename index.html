@@ -6,227 +6,151 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     html,body { height:100%; margin:0; background:#000; }
-    #container { width:100%; height:100vh; overflow:hidden; position:relative; }
-    #tooltip {
-      position: absolute;
-      pointer-events: none;
-      background: rgba(0,0,0,0.75);
-      color: #fff;
-      padding: 6px 8px;
-      border-radius: 4px;
-      font-family: Inter, system-ui, sans-serif;
-      font-size: 13px;
-      transform: translate(-50%, -120%);
-      display: none;
-      white-space: nowrap;
-      z-index: 10;
-    }
+    #container { width:100%; height:100vh; overflow:hidden; position:relative; display:flex; align-items:center; justify-content:center; }
+    #loading { color:#fff; font-size:18px; }
   </style>
 </head>
 <body>
-  <div id="container"></div>
-  <div id="tooltip"></div>
+  <div id="container">
+    <div id="loading">Loading 3D Globe...</div>
+  </div>
 
   <script type="module">
-    import * as THREE from 'https://unpkg.com/three@0.153.0/build/three.module.js';
-    import { OrbitControls } from 'https://unpkg.com/three@0.153.0/examples/jsm/controls/OrbitControls.js';
-
-    const container = document.getElementById('container');
-    const tooltip = document.getElementById('tooltip');
-
-    // Scene, camera, renderer
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 1000);
-    camera.position.set(0, 0, 3);
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-    renderer.setSize(innerWidth, innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    container.appendChild(renderer.domElement);
-
-    // Lights
-    const ambient = new THREE.AmbientLight(0x888888);
-    scene.add(ambient);
-    const dir = new THREE.DirectionalLight(0xffffff, 1);
-    dir.position.set(5, 3, 5);
-    scene.add(dir);
-
-    // Earth with solid blue color (no texture to avoid CORS issues)
-    const R = 1;
-    const sphereGeo = new THREE.SphereGeometry(R, 64, 64);
+    const loadingDiv = document.getElementById('loading');
     
-    const earthMat = new THREE.MeshStandardMaterial({
-      color: 0x2e5090, // Ocean blue
-      roughness: 0.8,
-      metalness: 0.1
-    });
-    const earth = new THREE.Mesh(sphereGeo, earthMat);
-    scene.add(earth);
+    try {
+      loadingDiv.textContent = 'Loading Three.js...';
+      
+      import('https://unpkg.com/three@0.153.0/build/three.module.js').then(THREE => {
+        loadingDiv.textContent = 'Loading OrbitControls...';
+        
+        import('https://unpkg.com/three@0.153.0/examples/jsm/controls/OrbitControls.js').then(module => {
+          const OrbitControls = module.OrbitControls;
+          loadingDiv.textContent = 'Initializing scene...';
+          
+          const container = document.getElementById('container');
+          container.innerHTML = '';
+          
+          // Scene, camera, renderer
+          const scene = new THREE.Scene();
+          const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 1000);
+          camera.position.set(0, 0, 3);
 
-    // Add some continents as simple shapes
-    const continentMat = new THREE.MeshStandardMaterial({
-      color: 0x2d5016, // Forest green
-      roughness: 0.9,
-      metalness: 0
-    });
+          const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+          renderer.setSize(innerWidth, innerHeight);
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+          container.appendChild(renderer.domElement);
 
-    // Simple continent markers (icosahedrons)
-    const continents = [
-      { lat: 45, lon: 0, size: 0.15 },    // Europe/Africa
-      { lat: 20, lon: -100, size: 0.12 }, // Americas
-      { lat: -20, lon: 130, size: 0.1 }   // Australia/Asia
-    ];
+          // Lights
+          const ambient = new THREE.AmbientLight(0x888888);
+          scene.add(ambient);
+          const dir = new THREE.DirectionalLight(0xffffff, 1);
+          dir.position.set(5, 3, 5);
+          scene.add(dir);
 
-    continents.forEach(cont => {
-      const pos = latLonToVector3(cont.lat, cont.lon, R + 0.001);
-      const geoContinent = new THREE.IcosahedronGeometry(cont.size, 2);
-      const meshContinent = new THREE.Mesh(geoContinent, continentMat);
-      meshContinent.position.copy(pos);
-      // Point towards center
-      meshContinent.lookAt(new THREE.Vector3(0, 0, 0));
-      earth.add(meshContinent);
-    });
+          // Earth
+          const R = 1;
+          const sphereGeo = new THREE.SphereGeometry(R, 64, 64);
+          const earthMat = new THREE.MeshStandardMaterial({
+            color: 0x2e5090,
+            roughness: 0.8,
+            metalness: 0.1
+          });
+          const earth = new THREE.Mesh(sphereGeo, earthMat);
+          scene.add(earth);
 
-    // Starfield background with simple material
-    const starsGeo = new THREE.SphereGeometry(90, 64, 64);
-    const starsMat = new THREE.MeshBasicMaterial({
-      color: 0x001122,
-      side: THREE.BackSide
-    });
-    const starMesh = new THREE.Mesh(starsGeo, starsMat);
-    scene.add(starMesh);
+          // Starfield
+          const starsGeo = new THREE.SphereGeometry(90, 64, 64);
+          const starsMat = new THREE.MeshBasicMaterial({
+            color: 0x001122,
+            side: THREE.BackSide
+          });
+          const starMesh = new THREE.Mesh(starsGeo, starsMat);
+          scene.add(starMesh);
 
-    // Add some star particles
-    const starsParticles = new THREE.BufferGeometry();
-    const starCount = 1000;
-    const starPositions = new Float32Array(starCount * 3);
-    for (let i = 0; i < starCount * 3; i += 3) {
-      starPositions[i] = (Math.random() - 0.5) * 180;
-      starPositions[i + 1] = (Math.random() - 0.5) * 180;
-      starPositions[i + 2] = (Math.random() - 0.5) * 180;
+          // Star particles
+          const starsParticles = new THREE.BufferGeometry();
+          const starCount = 1000;
+          const starPositions = new Float32Array(starCount * 3);
+          for (let i = 0; i < starCount * 3; i += 3) {
+            starPositions[i] = (Math.random() - 0.5) * 180;
+            starPositions[i + 1] = (Math.random() - 0.5) * 180;
+            starPositions[i + 2] = (Math.random() - 0.5) * 180;
+          }
+          starsParticles.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+          const starPoints = new THREE.Points(
+            starsParticles,
+            new THREE.PointsMaterial({ color: 0xffffff, size: 0.5 })
+          );
+          scene.add(starPoints);
+
+          // Controls
+          const controls = new OrbitControls(camera, renderer.domElement);
+          controls.enableDamping = true;
+          controls.dampingFactor = 0.08;
+          controls.enablePan = false;
+          controls.minDistance = 1.2;
+          controls.maxDistance = 5;
+
+          // Auto-spin
+          let isInteracting = false;
+          renderer.domElement.addEventListener('pointerdown', () => isInteracting = true);
+          renderer.domElement.addEventListener('pointerup', () => isInteracting = false);
+          renderer.domElement.addEventListener('pointerout', () => isInteracting = false);
+
+          // Markers
+          const markers = new THREE.Group();
+          scene.add(markers);
+
+          function latLonToVector3(lat, lon, radius = R) {
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lon + 180) * (Math.PI / 180);
+            const x = -radius * Math.sin(phi) * Math.cos(theta);
+            const z = radius * Math.sin(phi) * Math.sin(theta);
+            const y = radius * Math.cos(phi);
+            return new THREE.Vector3(x, y, z);
+          }
+
+          function addMarker(lat, lon, label = '', color = 0xff4444) {
+            const pos = latLonToVector3(lat, lon, R + 0.01);
+            const g = new THREE.SphereGeometry(0.02, 8, 8);
+            const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.5 }));
+            m.position.copy(pos);
+            m.userData = { label };
+            markers.add(m);
+          }
+
+          addMarker(37.7749, -122.4194, 'San Francisco', 0xff4444);
+          addMarker(51.5074, -0.1278, 'London', 0x00ffcc);
+          addMarker(-33.8688, 151.2093, 'Sydney', 0xffcc00);
+
+          // Resize
+          window.addEventListener('resize', () => {
+            camera.aspect = innerWidth / innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(innerWidth, innerHeight);
+          });
+
+          // Animation
+          const spinSpeed = 0.002;
+          function animate() {
+            requestAnimationFrame(animate);
+            if (!isInteracting) {
+              earth.rotation.y += spinSpeed;
+            }
+            controls.update();
+            renderer.render(scene, camera);
+          }
+          animate();
+        }).catch(e => {
+          loadingDiv.textContent = '❌ Error loading OrbitControls: ' + e.message;
+        });
+      }).catch(e => {
+        loadingDiv.textContent = '❌ Error loading Three.js: ' + e.message;
+      });
+    } catch (e) {
+      loadingDiv.textContent = '❌ Error: ' + e.message;
     }
-    starsParticles.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-    const starPoints = new THREE.Points(
-      starsParticles,
-      new THREE.PointsMaterial({ color: 0xffffff, size: 0.5 })
-    );
-    scene.add(starPoints);
-
-    // Controls
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.08;
-    controls.enablePan = false;
-    controls.minDistance = 1.2;
-    controls.maxDistance = 5;
-
-    // Auto-spin when NOT interacting
-    let isInteracting = false;
-    renderer.domElement.addEventListener('pointerdown', () => isInteracting = true);
-    renderer.domElement.addEventListener('pointerup', () => isInteracting = false);
-    renderer.domElement.addEventListener('pointerout', () => isInteracting = false);
-
-    // Raycaster for marker hover/click
-    const raycaster = new THREE.Raycaster();
-    const pointer = new THREE.Vector2();
-
-    // Markers container
-    const markers = new THREE.Group();
-    scene.add(markers);
-
-    // Convert lat/lon -> Vector3 on sphere surface
-    function latLonToVector3(lat, lon, radius = R) {
-      const phi = (90 - lat) * (Math.PI / 180);
-      const theta = (lon + 180) * (Math.PI / 180);
-      const x = -radius * Math.sin(phi) * Math.cos(theta);
-      const z = radius * Math.sin(phi) * Math.sin(theta);
-      const y = radius * Math.cos(phi);
-      return new THREE.Vector3(x, y, z);
-    }
-
-    // Add a basic spherical marker
-    function addMarker(lat, lon, label = '', color = 0xff4444, size = 0.02) {
-      const pos = latLonToVector3(lat, lon, R + 0.01);
-      const g = new THREE.SphereGeometry(size, 8, 8);
-      const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.5 }));
-      m.position.copy(pos);
-
-      // store metadata for tooltip
-      m.userData = { label };
-      markers.add(m);
-      return m;
-    }
-
-    // Example markers
-    addMarker(37.7749, -122.4194, 'San Francisco', 0xff4444);
-    addMarker(51.5074, -0.1278, 'London', 0x00ffcc);
-    addMarker(-33.8688, 151.2093, 'Sydney', 0xffcc00);
-
-    // Tooltip handling
-    function showTooltip(x, y, html) {
-      tooltip.style.left = `${x}px`;
-      tooltip.style.top = `${y}px`;
-      tooltip.innerHTML = html;
-      tooltip.style.display = 'block';
-    }
-    function hideTooltip() {
-      tooltip.style.display = 'none';
-    }
-
-    function onPointerMove(e) {
-      const rect = renderer.domElement.getBoundingClientRect();
-      pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-      raycaster.setFromCamera(pointer, camera);
-      const intersects = raycaster.intersectObjects(markers.children, true);
-      if (intersects.length > 0) {
-        const obj = intersects[0].object;
-        showTooltip(e.clientX, e.clientY, obj.userData.label || 'Marker');
-        renderer.domElement.style.cursor = 'pointer';
-      } else {
-        hideTooltip();
-        renderer.domElement.style.cursor = 'default';
-      }
-    }
-    renderer.domElement.addEventListener('pointermove', onPointerMove);
-
-    // Clicking markers
-    renderer.domElement.addEventListener('click', (e) => {
-      raycaster.setFromCamera(pointer, camera);
-      const intersects = raycaster.intersectObjects(markers.children, true);
-      if (intersects.length > 0) {
-        const obj = intersects[0].object;
-        alert('Clicked: ' + (obj.userData.label || 'Marker'));
-      }
-    });
-
-    // Resize handling
-    window.addEventListener('resize', () => {
-      camera.aspect = innerWidth / innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(innerWidth, innerHeight);
-    });
-
-    // Animation loop
-    const spinSpeed = 0.002;
-    function animate() {
-      requestAnimationFrame(animate);
-      if (!isInteracting) {
-        // rotate the earth
-        earth.rotation.y += spinSpeed;
-      }
-      controls.update();
-      renderer.render(scene, camera);
-    }
-    animate();
-
-    // Accessibility: reduce motion if user prefers reduced-motion
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (mq.matches) {
-      // stop auto spin
-    }
-
   </script>
 </body>
 </html>
