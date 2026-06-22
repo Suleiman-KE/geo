@@ -10,7 +10,7 @@ function initGlobe() {
   // Scene, camera, renderer
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
-  camera.position.set(0, 0, 3);
+  camera.position.set(0, 0, 2.5);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -18,9 +18,9 @@ function initGlobe() {
   container.appendChild(renderer.domElement);
 
   // Lights
-  const ambient = new THREE.AmbientLight(0x888888);
+  const ambient = new THREE.AmbientLight(0x999999);
   scene.add(ambient);
-  const dir = new THREE.DirectionalLight(0xffffff, 1);
+  const dir = new THREE.DirectionalLight(0xffffff, 0.8);
   dir.position.set(5, 3, 5);
   scene.add(dir);
 
@@ -28,9 +28,9 @@ function initGlobe() {
   const R = 1;
   const sphereGeo = new THREE.SphereGeometry(R, 64, 64);
   const earthMat = new THREE.MeshStandardMaterial({
-    color: 0x2e5090,
-    roughness: 0.8,
-    metalness: 0.1
+    color: 0x1a5490,
+    roughness: 0.7,
+    metalness: 0
   });
   const earth = new THREE.Mesh(sphereGeo, earthMat);
   scene.add(earth);
@@ -60,9 +60,31 @@ function initGlobe() {
   );
   scene.add(starPoints);
 
-  // Markers
-  const markers = new THREE.Group();
-  scene.add(markers);
+  // Country data with capitals
+  const countries = [
+    { name: 'Kenya', lat: -0.23, lon: 36.86, capital: 'Nairobi', color: 0x4CAF50 },
+    { name: 'Egypt', lat: 26.82, lon: 30.80, capital: 'Cairo', color: 0x8BC34A },
+    { name: 'South Africa', lat: -30.56, lon: 22.94, capital: 'Pretoria', color: 0x2E7D32 },
+    { name: 'Nigeria', lat: 9.08, lon: 8.68, capital: 'Abuja', color: 0x558B2F },
+    { name: 'Ethiopia', lat: 9.15, lon: 40.49, capital: 'Addis Ababa', color: 0x33691E },
+    { name: 'United States', lat: 37.09, lon: -95.71, capital: 'Washington D.C.', color: 0x1976D2 },
+    { name: 'Brazil', lat: -14.24, lon: -51.93, capital: 'Brasília', color: 0x388E3C },
+    { name: 'India', lat: 20.59, lon: 78.96, capital: 'New Delhi', color: 0x7CB342 },
+    { name: 'China', lat: 35.86, lon: 104.20, capital: 'Beijing', color: 0xF57C00 },
+    { name: 'Russia', lat: 61.52, lon: 105.32, capital: 'Moscow', color: 0xD32F2F },
+    { name: 'Australia', lat: -25.27, lon: 133.78, capital: 'Canberra', color: 0xFF6F00 },
+    { name: 'Japan', lat: 36.20, lon: 138.25, capital: 'Tokyo', color: 0xFBC02D },
+    { name: 'France', lat: 46.23, lon: 2.21, capital: 'Paris', color: 0x512DA8 },
+    { name: 'Germany', lat: 51.17, lon: 10.45, capital: 'Berlin', color: 0x303F9F },
+    { name: 'United Kingdom', lat: 55.38, lon: -3.44, capital: 'London', color: 0x0277BD },
+    { name: 'Canada', lat: 56.13, lon: -106.35, capital: 'Ottawa', color: 0x00838F },
+    { name: 'Mexico', lat: 23.63, lon: -102.55, capital: 'Mexico City', color: 0x006064 },
+    { name: 'Argentina', lat: -38.42, lon: -63.62, capital: 'Buenos Aires', color: 0x455A64 }
+  ];
+
+  // Countries group (continents)
+  const countriesGroup = new THREE.Group();
+  scene.add(countriesGroup);
 
   function latLonToVector3(lat, lon, radius = R) {
     const phi = (90 - lat) * (Math.PI / 180);
@@ -73,18 +95,22 @@ function initGlobe() {
     return new THREE.Vector3(x, y, z);
   }
 
-  function addMarker(lat, lon, label = '', color = 0xff4444) {
-    const pos = latLonToVector3(lat, lon, R + 0.01);
-    const g = new THREE.SphereGeometry(0.02, 8, 8);
-    const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.5 }));
-    m.position.copy(pos);
-    m.userData = { label };
-    markers.add(m);
-  }
-
-  addMarker(37.7749, -122.4194, 'San Francisco', 0xff4444);
-  addMarker(51.5074, -0.1278, 'London', 0x00ffcc);
-  addMarker(-33.8688, 151.2093, 'Sydney', 0xffcc00);
+  // Add country boxes
+  countries.forEach(country => {
+    const pos = latLonToVector3(country.lat, country.lon, R + 0.05);
+    const boxGeo = new THREE.BoxGeometry(0.08, 0.08, 0.08);
+    const boxMat = new THREE.MeshStandardMaterial({ 
+      color: country.color, 
+      emissive: country.color, 
+      emissiveIntensity: 0.3,
+      metalness: 0.2
+    });
+    const box = new THREE.Mesh(boxGeo, boxMat);
+    box.position.copy(pos);
+    box.lookAt(new THREE.Vector3(0, 0, 0));
+    box.userData = { country: country.name, capital: country.capital };
+    countriesGroup.add(box);
+  });
 
   // Raycaster
   const raycaster = new THREE.Raycaster();
@@ -106,10 +132,11 @@ function initGlobe() {
     pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
     raycaster.setFromCamera(pointer, camera);
-    const intersects = raycaster.intersectObjects(markers.children, true);
+    const intersects = raycaster.intersectObjects(countriesGroup.children, true);
     if (intersects.length > 0) {
       const obj = intersects[0].object;
-      showTooltip(e.clientX, e.clientY, obj.userData.label || 'Marker');
+      const html = '<b>' + obj.userData.country + '</b><br>Capital: ' + obj.userData.capital;
+      showTooltip(e.clientX, e.clientY, html);
       renderer.domElement.style.cursor = 'pointer';
     } else {
       hideTooltip();
@@ -117,19 +144,9 @@ function initGlobe() {
     }
   });
 
-  renderer.domElement.addEventListener('click', function(e) {
-    raycaster.setFromCamera(pointer, camera);
-    const intersects = raycaster.intersectObjects(markers.children, true);
-    if (intersects.length > 0) {
-      const obj = intersects[0].object;
-      alert('Clicked: ' + (obj.userData.label || 'Marker'));
-    }
-  });
-
-  // Mouse controls (simple rotation)
+  // Mouse controls - Drag to rotate
   let isDragging = false;
   let previousMousePosition = { x: 0, y: 0 };
-  let rotation = { x: 0, y: 0 };
 
   renderer.domElement.addEventListener('mousedown', function(e) {
     isDragging = true;
@@ -141,11 +158,11 @@ function initGlobe() {
       const deltaX = e.clientX - previousMousePosition.x;
       const deltaY = e.clientY - previousMousePosition.y;
 
-      rotation.y += deltaX * 0.01;
-      rotation.x += deltaY * 0.01;
+      earth.rotation.y += deltaX * 0.005;
+      earth.rotation.x += deltaY * 0.005;
 
-      earth.rotation.y = rotation.y;
-      earth.rotation.x = rotation.x;
+      countriesGroup.rotation.y = earth.rotation.y;
+      countriesGroup.rotation.x = earth.rotation.x;
 
       previousMousePosition = { x: e.clientX, y: e.clientY };
     }
@@ -178,23 +195,9 @@ function initGlobe() {
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  // Animation
-  let autoSpin = true;
-  const spinSpeed = 0.0005;
-
-  renderer.domElement.addEventListener('mousedown', function() {
-    autoSpin = false;
-  });
-
-  renderer.domElement.addEventListener('mouseup', function() {
-    autoSpin = true;
-  });
-
+  // Animation loop
   function animate() {
     requestAnimationFrame(animate);
-    if (autoSpin && !isDragging) {
-      earth.rotation.y += spinSpeed;
-    }
     renderer.render(scene, camera);
   }
   animate();
