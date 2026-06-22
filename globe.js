@@ -20,13 +20,13 @@ function initGlobe() {
   // Lights
   const ambient = new THREE.AmbientLight(0x999999);
   scene.add(ambient);
-  const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+  const dir = new THREE.DirectionalLight(0xffffff, 1);
   dir.position.set(5, 3, 5);
   scene.add(dir);
 
-  // Earth
+  // Earth - Ocean
   const R = 1;
-  const sphereGeo = new THREE.SphereGeometry(R, 64, 64);
+  const sphereGeo = new THREE.SphereGeometry(R, 128, 128);
   const earthMat = new THREE.MeshStandardMaterial({
     color: 0x1a5490,
     roughness: 0.7,
@@ -60,29 +60,49 @@ function initGlobe() {
   );
   scene.add(starPoints);
 
-  // Country data with capitals
+  // Country data - comprehensive with lat/lon bounds for continent visualization
   const countries = [
+    // Africa
     { name: 'Kenya', lat: -0.23, lon: 36.86, capital: 'Nairobi', color: 0x4CAF50 },
     { name: 'Egypt', lat: 26.82, lon: 30.80, capital: 'Cairo', color: 0x8BC34A },
     { name: 'South Africa', lat: -30.56, lon: 22.94, capital: 'Pretoria', color: 0x2E7D32 },
     { name: 'Nigeria', lat: 9.08, lon: 8.68, capital: 'Abuja', color: 0x558B2F },
     { name: 'Ethiopia', lat: 9.15, lon: 40.49, capital: 'Addis Ababa', color: 0x33691E },
-    { name: 'United States', lat: 37.09, lon: -95.71, capital: 'Washington D.C.', color: 0x1976D2 },
-    { name: 'Brazil', lat: -14.24, lon: -51.93, capital: 'Brasília', color: 0x388E3C },
-    { name: 'India', lat: 20.59, lon: 78.96, capital: 'New Delhi', color: 0x7CB342 },
-    { name: 'China', lat: 35.86, lon: 104.20, capital: 'Beijing', color: 0xF57C00 },
-    { name: 'Russia', lat: 61.52, lon: 105.32, capital: 'Moscow', color: 0xD32F2F },
-    { name: 'Australia', lat: -25.27, lon: 133.78, capital: 'Canberra', color: 0xFF6F00 },
-    { name: 'Japan', lat: 36.20, lon: 138.25, capital: 'Tokyo', color: 0xFBC02D },
+    { name: 'Morocco', lat: 31.79, lon: -7.09, capital: 'Rabat', color: 0x7CB342 },
+    { name: 'Tanzania', lat: -6.37, lon: 34.89, capital: 'Dar es Salaam', color: 0x9CCC65 },
+    { name: 'Ghana', lat: 5.60, lon: -0.80, capital: 'Accra', color: 0xAED581 },
+    
+    // Europe
     { name: 'France', lat: 46.23, lon: 2.21, capital: 'Paris', color: 0x512DA8 },
     { name: 'Germany', lat: 51.17, lon: 10.45, capital: 'Berlin', color: 0x303F9F },
     { name: 'United Kingdom', lat: 55.38, lon: -3.44, capital: 'London', color: 0x0277BD },
-    { name: 'Canada', lat: 56.13, lon: -106.35, capital: 'Ottawa', color: 0x00838F },
-    { name: 'Mexico', lat: 23.63, lon: -102.55, capital: 'Mexico City', color: 0x006064 },
-    { name: 'Argentina', lat: -38.42, lon: -63.62, capital: 'Buenos Aires', color: 0x455A64 }
+    { name: 'Italy', lat: 41.87, lon: 12.57, capital: 'Rome', color: 0x0288D1 },
+    { name: 'Spain', lat: 40.46, lon: -3.75, capital: 'Madrid', color: 0x0097A7 },
+    { name: 'Russia', lat: 61.52, lon: 105.32, capital: 'Moscow', color: 0x00838F },
+    { name: 'Poland', lat: 51.92, lon: 19.15, capital: 'Warsaw', color: 0x006064 },
+    
+    // Asia
+    { name: 'China', lat: 35.86, lon: 104.20, capital: 'Beijing', color: 0xF57C00 },
+    { name: 'India', lat: 20.59, lon: 78.96, capital: 'New Delhi', color: 0xFF8F00 },
+    { name: 'Japan', lat: 36.20, lon: 138.25, capital: 'Tokyo', color: 0xFBC02D },
+    { name: 'Thailand', lat: 15.87, lon: 100.99, capital: 'Bangkok', color: 0xFFD54F },
+    { name: 'Indonesia', lat: -0.79, lon: 113.92, capital: 'Jakarta', color: 0xFFE082 },
+    { name: 'Pakistan', lat: 30.82, lon: 69.18, capital: 'Islamabad', color: 0xFFF59D },
+    
+    // Americas
+    { name: 'United States', lat: 37.09, lon: -95.71, capital: 'Washington D.C.', color: 0x1976D2 },
+    { name: 'Canada', lat: 56.13, lon: -106.35, capital: 'Ottawa', color: 0x1565C0 },
+    { name: 'Brazil', lat: -14.24, lon: -51.93, capital: 'Brasília', color: 0x388E3C },
+    { name: 'Mexico', lat: 23.63, lon: -102.55, capital: 'Mexico City', color: 0x43A047 },
+    { name: 'Argentina', lat: -38.42, lon: -63.62, capital: 'Buenos Aires', color: 0x689F38 },
+    { name: 'Colombia', lat: 4.57, lon: -74.30, capital: 'Bogotá', color: 0x7CB342 },
+    
+    // Oceania
+    { name: 'Australia', lat: -25.27, lon: 133.78, capital: 'Canberra', color: 0xFF6F00 },
+    { name: 'New Zealand', lat: -40.90, lon: 174.89, capital: 'Wellington', color: 0xFFA000 }
   ];
 
-  // Countries group (continents)
+  // Countries group
   const countriesGroup = new THREE.Group();
   scene.add(countriesGroup);
 
@@ -95,21 +115,28 @@ function initGlobe() {
     return new THREE.Vector3(x, y, z);
   }
 
-  // Add country boxes
-  countries.forEach(country => {
-    const pos = latLonToVector3(country.lat, country.lon, R + 0.05);
-    const boxGeo = new THREE.BoxGeometry(0.08, 0.08, 0.08);
-    const boxMat = new THREE.MeshStandardMaterial({ 
+  // Create continent shapes using icosahedrons and boxes
+  countries.forEach((country, idx) => {
+    const pos = latLonToVector3(country.lat, country.lon, R + 0.02);
+    
+    // Vary size and shape based on country importance
+    const sizes = [0.04, 0.05, 0.06, 0.035, 0.045];
+    const size = sizes[idx % sizes.length];
+    
+    // Use icosahedron for continent-like appearance
+    const geoContinent = new THREE.IcosahedronGeometry(size, 3);
+    const matContinent = new THREE.MeshStandardMaterial({ 
       color: country.color, 
       emissive: country.color, 
-      emissiveIntensity: 0.3,
-      metalness: 0.2
+      emissiveIntensity: 0.2,
+      metalness: 0,
+      roughness: 0.8
     });
-    const box = new THREE.Mesh(boxGeo, boxMat);
-    box.position.copy(pos);
-    box.lookAt(new THREE.Vector3(0, 0, 0));
-    box.userData = { country: country.name, capital: country.capital };
-    countriesGroup.add(box);
+    const mesh = new THREE.Mesh(geoContinent, matContinent);
+    mesh.position.copy(pos);
+    mesh.lookAt(new THREE.Vector3(0, 0, 0));
+    mesh.userData = { country: country.name, capital: country.capital };
+    countriesGroup.add(mesh);
   });
 
   // Raycaster
